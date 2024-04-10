@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Booking</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css">
+    <style>
+        .list-group-item {
+            display: flex;
+            justify-content: space-between;
+        }
+        #inputContainer {
+            display: flex;
+            flex-direction: row;
+            align-items: center; 
+            gap: 20px; 
+            margin-top: 50px;
+            margin-left: 150px;
+            
+        }
+
+        #searchInput {
+            margin-right: 10px;
+            width: 200px;
+            text-align: center; /* Center text in input field */
+        }
+
+        #nameInput {
+            width: 200px;
+            margin-right: 10px; 
+            text-align: center;
+        }
+
+        #seatInput {
+            width: 200px;
+            margin-right: 10px; 
+            text-align: center;
+        }
+
+        #add_btn {
+            margin-top: 8px; /* Adjust button position */
+        }
+
+        .text-center {
+            text-align: center; /* Center text */
+        }
+
+        .center-input {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px; /* Add margin to bottom */
+        }
+        #in{
+            margin-left: 420px;
+        }
+        #parentList{
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Movie Booking</h1>
+        <p class="text-center">Total Booked: <span id="totalBooked">0</span></p>
+        <label id="in" class="text-center" for="searchInput">Find Slot:</label>
+        <input type="text" id="searchInput" oninput="findSlot(this.value)" >
+
+        <div class="input-group mb-3" id="inputContainer"> 
+            <label for="username">UserName:</label>
+            <input id="nameInput" type="text"  placeholder="User Name">
+
+            <label for="username">Seat Number:</label>
+            <input id="seatInput" type="number"  placeholder="Seat Number">
+            <div class="input-group-append">
+                <button id="add_btn" class="btn btn-outline-success" type="button">Add</button>
+            </div>
+        </div>
+        <ul id="parentList" class="list-group">
+            <li id="cl" class="list-group-item emptyMsg">
+                <h3 class="text-center">Nothing Present</h3>
+            </li>
+        </ul>
+    </div>
+
+
+    <script>
+        let addBtn = document.getElementById("add_btn");
+        let parentList = document.getElementById("parentList");
+        let totalBookedSpan = document.getElementById("totalBooked");
+        let totalBooked = 0;
+
+        addBtn.addEventListener("click", addBooking);
+
+        function addBooking() {
+            let nameInput = document.getElementById("nameInput").value.trim();
+            let seatInput = document.getElementById("seatInput").value.trim();
+
+            if (!nameInput || !seatInput) {
+                alert("Please enter both name and seat number.");
+                return;
+            }
+
+            let existingNames = Array.from(parentList.querySelectorAll('h3')).map(item => item.textContent.split(" - ")[0]);
+
+            if (existingNames.includes(nameInput)) {
+                alert("Already Booked");
+                return;
+            }
+
+            if (parentList.children[0].classList.contains("emptyMsg")) {
+                parentList.innerHTML = '';
+            }
+
+            let newLi = document.createElement("li");
+            newLi.className = "list-group-item";
+
+            newLi.innerHTML = `<h3 class="flex-grow-1">${nameInput} - ${seatInput}</h3> 
+                <button type="button" class="btn btn-warning" onclick="editBooking(this)">Edit</button>
+                <button type="button" class="btn btn-danger" onclick="removeBooking(this)">Remove</button>`;
+
+            parentList.appendChild(newLi);
+            updateTotalBooked(1);
+            resetForm();
+        }
+
+        function removeBooking(currElement) {
+            currElement.parentElement.remove();
+            updateTotalBooked(-1);
+        }
+
+        function editBooking(currElement) {
+            let currentBookingElement = currElement.parentElement.querySelector("h3");
+            let currentBookingText = currentBookingElement.textContent;
+            let [name, seat] = currentBookingText.split(" - ");
+            let nameInput = document.createElement("input");
+            nameInput.type = "text";
+            nameInput.className = "form-control";
+            nameInput.value = name;
+            let seatInput = document.createElement("input");
+            seatInput.type = "number";
+            seatInput.className = "form-control";
+            seatInput.value = seat;
+            currElement.parentElement.replaceChild(nameInput, currentBookingElement);
+            currElement.parentElement.insertBefore(seatInput, currElement);
+            currElement.textContent = "Done";
+            currElement.setAttribute("onclick", "doneEditing(this)");
+        }
+
+        function doneEditing(currElement) {
+            let nameInput = currElement.parentElement.querySelector("input[type='text']");
+            let seatInput = currElement.parentElement.querySelector("input[type='number']");
+            let newName = nameInput.value;
+            let newSeat = seatInput.value;
+            let newH3 = document.createElement("h3");
+            newH3.className = "flex-grow-1";
+            newH3.textContent = `${newName} - ${newSeat}`;
+            currElement.parentElement.replaceChild(newH3, nameInput);
+            seatInput.remove();
+            currElement.textContent = "Edit";
+            currElement.setAttribute("onclick", "editBooking(this)");
+        }
+
+        function updateTotalBooked(change) {
+            totalBooked += change;
+            totalBookedSpan.textContent = totalBooked;
+        }
+
+        function findSlot(searchTerm) {
+            let allBookings = parentList.querySelectorAll('h3');
+            allBookings.forEach(booking => {
+                if (booking.textContent.toLowerCase().includes(searchTerm.toLowerCase())) {
+                    booking.parentElement.style.display = 'block';
+                } else {
+                    booking.parentElement.style.display = 'none';
+                }
+            });
+        }
+
+        function resetForm() {
+            document.getElementById("nameInput").value = '';
+            document.getElementById("seatInput").value = '';
+        }
+    </script>
+</body>
+</html>
