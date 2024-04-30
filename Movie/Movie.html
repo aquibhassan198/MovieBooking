@@ -17,7 +17,6 @@
             gap: 20px; 
             margin-top: 50px;
             margin-left: 150px;
-            
         }
 
         #searchInput {
@@ -84,6 +83,7 @@
     </div>
 
 
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
         let addBtn = document.getElementById("add_btn");
         let parentList = document.getElementById("parentList");
@@ -101,13 +101,23 @@
                 return;
             }
 
-            let existingNames = Array.from(parentList.querySelectorAll('h3')).map(item => item.textContent.split(" - ")[0]);
+            axios
+                .post(
+                    'https://crudcrud.com/api/81e7ce057ec549319cf480aa988b112a/bookings',
+                    { name: nameInput, seat: seatInput }
+                )
+                .then((response) => {
+                    console.log(response.data);
+                    displayBooking(response.data);
+                })
+                .catch((error) => {
+                    console.error('Error adding booking:', error);
+                });
 
-            if (existingNames.includes(nameInput)) {
-                alert("Already Booked");
-                return;
-            }
+            resetForm();
+        }
 
+        function displayBooking(booking) {
             if (parentList.children[0].classList.contains("emptyMsg")) {
                 parentList.innerHTML = '';
             }
@@ -115,21 +125,28 @@
             let newLi = document.createElement("li");
             newLi.className = "list-group-item";
 
-            newLi.innerHTML = `<h3 class="flex-grow-1">${nameInput} - ${seatInput}</h3> 
-                <button type="button" class="btn btn-warning" onclick="editBooking(this)">Edit</button>
-                <button type="button" class="btn btn-danger" onclick="removeBooking(this)">Remove</button>`;
+            newLi.innerHTML = `<h3 class="flex-grow-1">${booking.name} - ${booking.seat}</h3> 
+                <button type="button" class="btn btn-warning" onclick="editBooking(this, '${booking._id}')">Edit</button>
+                <button type="button" class="btn btn-danger" onclick="removeBooking(this, '${booking._id}')">Remove</button>`;
 
             parentList.appendChild(newLi);
             updateTotalBooked(1);
-            resetForm();
         }
 
-        function removeBooking(currElement) {
-            currElement.parentElement.remove();
-            updateTotalBooked(-1);
+        function removeBooking(currElement, id) {
+            axios
+                .delete(`https://crudcrud.com/api/81e7ce057ec549319cf480aa988b112a/bookings/${id}`)
+                .then((response) => {
+                    console.log(response.data);
+                    currElement.parentElement.remove();
+                    updateTotalBooked(-1);
+                })
+                .catch((error) => {
+                    console.error('Error removing booking:', error);
+                });
         }
 
-        function editBooking(currElement) {
+        function editBooking(currElement, id) {
             let currentBookingElement = currElement.parentElement.querySelector("h3");
             let currentBookingText = currentBookingElement.textContent;
             let [name, seat] = currentBookingText.split(" - ");
@@ -144,26 +161,39 @@
             currElement.parentElement.replaceChild(nameInput, currentBookingElement);
             currElement.parentElement.insertBefore(seatInput, currElement);
             currElement.textContent = "Done";
-            currElement.setAttribute("onclick", "doneEditing(this)");
+            currElement.setAttribute("onclick", `doneEditing(this, '${id}')`);
         }
 
-        function doneEditing(currElement) {
+        function doneEditing(currElement, id) {
             let nameInput = currElement.parentElement.querySelector("input[type='text']");
             let seatInput = currElement.parentElement.querySelector("input[type='number']");
             let newName = nameInput.value;
             let newSeat = seatInput.value;
-            let newH3 = document.createElement("h3");
-            newH3.className = "flex-grow-1";
-            newH3.textContent = `${newName} - ${newSeat}`;
-            currElement.parentElement.replaceChild(newH3, nameInput);
-            seatInput.remove();
-            currElement.textContent = "Edit";
-            currElement.setAttribute("onclick", "editBooking(this)");
+            axios
+                .put(`https://crudcrud.com/api/81e7ce057ec549319cf480aa988b112a/bookings/${id}`, { name: newName, seat: newSeat })
+                .then((response) => {
+                    console.log(response.data);
+                    let newH3 = document.createElement("h3");
+                    newH3.className = "flex-grow-1";
+                    newH3.textContent = `${newName} - ${newSeat}`;
+                    currElement.parentElement.replaceChild(newH3, nameInput);
+                    seatInput.remove();
+                    currElement.textContent = "Edit";
+                    currElement.setAttribute("onclick", `editBooking(this, '${id}')`);
+                })
+                .catch((error) => {
+                    console.error('Error updating booking:', error);
+                });
         }
 
         function updateTotalBooked(change) {
             totalBooked += change;
             totalBookedSpan.textContent = totalBooked;
+        }
+
+        function resetForm() {
+            document.getElementById("nameInput").value = '';
+            document.getElementById("seatInput").value = '';
         }
 
         function findSlot(searchTerm) {
@@ -177,10 +207,22 @@
             });
         }
 
-        function resetForm() {
-            document.getElementById("nameInput").value = '';
-            document.getElementById("seatInput").value = '';
-        }
+        // Fetch existing bookings on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            axios
+                .get('https://crudcrud.com/api/81e7ce057ec549319cf480aa988b112a/bookings')
+                .then((response) => {
+                    console.log(response.data);
+                    response.data.forEach(booking => {
+                        displayBooking(booking);
+                    });
+                    totalBooked = response.data.length;
+                    totalBookedSpan.textContent = totalBooked;
+                })
+                .catch((error) => {
+                    console.error('Error fetching bookings:', error);
+                });
+        });
     </script>
 </body>
 </html>
